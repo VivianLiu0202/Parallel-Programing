@@ -7,8 +7,13 @@
 #include <cstring>
 using namespace std;
 #define n 33554432
-int sum[n];
-int c[n];//n个数
+unsigned long long int c[n];//n个数
+int LOOP = 1;
+void init()
+{
+    for(unsigned i =0;i<n;i++)
+        c[i] = i;
+}
 
 //递归函数
 void recursion(int m)
@@ -26,11 +31,8 @@ void recursion(int m)
 int main()
 {
     struct timeval starttime_3,endtime_3; 
-    float timeuse_3;
+    init();
     //----------------超标量优化-----------------计算n个数的和
-    for(int i=0;i<n;i++)
-        c[i] = i%20;
-    int ans = 0;
    //递归
     /*
      *  1. 将给定元素两两相加，得到n/2个中间结果;
@@ -39,13 +41,13 @@ int main()
      */
     //实现方式1：递归函数
     gettimeofday(&starttime_3,NULL);//begin
-    recursion(n);
+    for(int k=1;k<=LOOP;k++)
+    {
+        recursion(n);
+    }
     gettimeofday(&endtime_3,NULL);//end
-    timeuse_3 = 1000000*(endtime_3.tv_sec-starttime_3.tv_sec)+(endtime_3.tv_usec-starttime_3.tv_usec);
-    timeuse_3 /= 1000000;
-    printf("timeuse_3 = %f\n",timeuse_3);
-    cout<<c[0]<<endl;
-
+    cout<<"recursion used time:"<<((endtime_3.tv_sec-starttime_3.tv_sec)*1000000+(endtime_3.tv_usec-starttime_3.tv_usec))*1.0/1000/LOOP<<"ms"<<endl;
+    return 0;
 
     //二重循环
     // gettimeofday(&starttime_3,NULL);//begin
