@@ -27,14 +27,16 @@ int main()
     gettimeofday(&starttime_2,NULL);//begin
     for(int k = 1;k<=LOOP;k++)
     {
+	unsigned long long int sum1 = 0;
+   	unsigned long long int sum2 = 0;
         for(int i=0;i<n;i+=2)
         {
             sum1+=c[i];
             sum2+=c[i+1];
         }
+	unsigned long long int and = sum1+sum2;
     }
-    
-    ans = sum1+sum2;
+
     gettimeofday(&endtime_2,NULL);//end
     cout<<"optimize used time:"<<((endtime_2.tv_sec-starttime_2.tv_sec)*1000000+(endtime_2.tv_usec-starttime_2.tv_usec))*1.0/1000/LOOP<<"ms"<<endl;
     return 0;

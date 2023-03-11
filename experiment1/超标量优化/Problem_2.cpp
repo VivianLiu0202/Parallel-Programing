@@ -40,9 +40,9 @@ int main()
     gettimeofday(&starttime_1,NULL);//begin
     for(int k=0;k<=LOOP;k++)
     {
-        unsigned sum = 0;
+        unsigned long long int sum = 0;
         for (int i = 0; i < n - 1; i+=2)
-            sum += c[i], sum += c[i+1]; 
+            sum += c[i], sum += c[i+1];
     }
     gettimeofday(&endtime_1,NULL);//end
     cout<<"common used time:"<<((endtime_1.tv_sec-starttime_1.tv_sec)*1000000+(endtime_1.tv_usec-starttime_1.tv_usec))*1.0/1000/LOOP<<"ms"<<endl;
@@ -50,19 +50,18 @@ int main()
     //-----------------优化算法------------------
     //多链路式
     struct timeval starttime_2,endtime_2;
-    unsigned long long int sum1 = 0;
-    unsigned long long int sum2 = 0;
     gettimeofday(&starttime_2,NULL);//begin
     for(int k = 1;k<=LOOP;k++)
     {
+        unsigned long long int sum1 = 0;
+        unsigned long long int sum2 = 0;
         for(int i=0;i<n;i+=2)
         {
             sum1+=c[i];
             sum2+=c[i+1];
         }
+        unsigned long long int ans = sum1+sum2;
     }
-    
-    ans = sum1+sum2;
     gettimeofday(&endtime_2,NULL);//end
     cout<<"optimize used time:"<<((endtime_2.tv_sec-starttime_2.tv_sec)*1000000+(endtime_2.tv_usec-starttime_2.tv_usec))*1.0/1000/LOOP<<"ms"<<endl;
     
@@ -73,7 +72,7 @@ int main()
      *  3. 依此类推，log(n)个步骤后得到一个值即为最终结果。
      */
     //实现方式1：递归函数
-    struct timeval starttime_3,endtime_3; 
+    struct timeval starttime_3,endtime_3;
     gettimeofday(&starttime_3,NULL);//begin
     for(int k=1;k<=LOOP;k++)
     {
