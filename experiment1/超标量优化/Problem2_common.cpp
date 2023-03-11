@@ -22,9 +22,11 @@ int main()
     //-----------------平凡算法-----------------
     gettimeofday(&starttime_1,NULL);//begin
 
-    for(int k = 1;k<=LOOP;k++)
+    for(int k=0;k<=LOOP;k++)
     {
-        for(int i=0;i<n;i++)  ans+=c[i];
+        unsigned sum = 0;
+        for (int i = 0; i < n - 1; i+=2)
+            sum += c[i], sum += c[i+1]; 
     }
     gettimeofday(&endtime_1,NULL);//end
     cout<<"common used time:"<<((endtime_1.tv_sec-starttime_1.tv_sec)*1000000+(endtime_1.tv_usec-starttime_1.tv_usec))*1.0/1000/LOOP<<"ms"<<endl;
