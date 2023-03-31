@@ -1,7 +1,7 @@
 #include<iostream>
 #include<ctime>
 using namespace std;
-int main(){s
+int main(){
     //hh
     //test
     //hah 
