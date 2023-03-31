@@ -96,8 +96,9 @@ int main()
             if(n<=70)
                 cycle=100;
             else
-                if(n>=300)
+                if(n>=200)
                     cycle=10;
+                else cycle = 10;
         QueryPerformanceFrequency(&tc1);
 		QueryPerformanceCounter(&t1);
 		while(count<cycle){
