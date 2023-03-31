@@ -8,5 +8,7 @@ int main(){
     //hehe
     //HAHA 
     cout<<"hello"<<endl;
+    //NIHAO 
+    cout<<1+1<<endl;
     return 0;
 }
