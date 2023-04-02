@@ -204,9 +204,10 @@ int main()
         }
         // QueryPerformanceCounter(&t2);
         // cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<endl;
-        count = 1;
         gettimeofday(&tail1, NULL);
         cout << n << " " << count << " " << (tail1.tv_sec - head1.tv_sec) * 1000.0 + (tail1.tv_usec - head1.tv_usec) / 1000.0 << "ms" << endl;
+
+        count = 1;
 
         // QueryPerformanceFrequency(&tc2);
         // QueryPerformanceCounter(&t3);
