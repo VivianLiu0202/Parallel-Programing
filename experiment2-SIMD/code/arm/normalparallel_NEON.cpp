@@ -98,7 +98,7 @@ void Gauss_Part2(int n){ //对第二个部分进行向量化的SSE并行算法
     float32x4_t t1,t2,t3,t4; //定义4个向量寄存器
     for(k=0;k<n;k++)
     {
-        float tmp=C[k][k];
+        float tmp=c[k][k];
 		for(j=k;j<n;j++)
 			c[k][j]/=tmp;//可以进行向量化，用SIMD 扩展指令进行并行优化
 
