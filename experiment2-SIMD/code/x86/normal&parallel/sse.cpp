@@ -1,5 +1,5 @@
 #include <iostream>
-// #include<windows.h>
+#include<windows.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <sys/time.h>
@@ -180,9 +180,12 @@ int main()
     int cycle;
     struct timeval head1, head2, head3, head4;
     struct timeval tail1, tail2, tail3, tail4;
-    // LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
+    LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
+    LARGE_INTEGER t5,t6,t7,t8,tc3,tc4;
+    int ans = 0;
     for (int n = 2; n <= N; n *= 2)
     {
+        ans++;
         Initialize(n);
         count = 1;
         if (n <= 30)
@@ -194,34 +197,56 @@ int main()
         else
             cycle = 10;
 
-        // QueryPerformanceFrequency(&tc1);
-        // QueryPerformanceCounter(&t1);
-        gettimeofday(&head1, NULL);
+
+        cout<<"第"<<ans<<"次："<<endl;
+        cout<<"常规算法："<<endl;
+        QueryPerformanceFrequency(&tc1);
+        QueryPerformanceCounter(&t1);
         while (count < cycle)
         {
             Gauss_Normal(n);
             count++;
         }
-        // QueryPerformanceCounter(&t2);
-        // cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<endl;
-        gettimeofday(&tail1, NULL);
-        cout << n << " " << count << " " << (tail1.tv_sec - head1.tv_sec) * 1000.0 + (tail1.tv_usec - head1.tv_usec) / 1000.0 << "ms" << endl;
+        QueryPerformanceCounter(&t2);
+        cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<"ms"<<endl;
 
+        cout<<"优化第一个二重循环部分"<<endl;
+        count=1;
+        QueryPerformanceFrequency(&tc3);
+        QueryPerformanceCounter(&t5);
+        while (count < cycle)
+        {
+            Gauss_Part1(n);
+            count++;
+        }
+        QueryPerformanceCounter(&t6);
+        cout<<n<<" "<<count<<" "<<((t6.QuadPart - t5.QuadPart)*1000.0 / tc3.QuadPart)<<"ms"<<endl;
+
+
+        cout<<"优化第二个三重循环部分"<<endl;
+        count=1;
+        QueryPerformanceFrequency(&tc4);
+        QueryPerformanceCounter(&t7);
+        while (count < cycle)
+        {
+            Gauss_Part2(n);
+            count++;
+        }
+        QueryPerformanceCounter(&t8);
+        cout<<n<<" "<<count<<" "<<((t8.QuadPart - t7.QuadPart)*1000.0 / tc4.QuadPart)<<"ms"<<endl;
+
+        cout<<"全部优化"<<endl;
         count = 1;
-
-        // QueryPerformanceFrequency(&tc2);
-        // QueryPerformanceCounter(&t3);
-        gettimeofday(&head2, NULL);
-
+        QueryPerformanceFrequency(&tc2);
+        QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
             Gauss_SSE(n);
             count++;
         }
-        gettimeofday(&tail2, NULL);
-        // QueryPerformanceCounter(&t4);
-        // cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<endl;
-        cout << n << " " << count << " " << (tail2.tv_sec - head2.tv_sec) * 1000.0 + (tail2.tv_usec - head2.tv_usec) / 1000.0 << "ms" << endl;
+        QueryPerformanceCounter(&t4);
+        cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
+        cout<<endl<<endl;
     }
 
     return 0;
