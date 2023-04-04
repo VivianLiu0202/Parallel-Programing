@@ -178,8 +178,6 @@ int main()
     int N = 1024;
     int count;
     int cycle;
-    struct timeval head1, head2, head3, head4;
-    struct timeval tail1, tail2, tail3, tail4;
     LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
     LARGE_INTEGER t5,t6,t7,t8,tc3,tc4;
     int ans = 0;
