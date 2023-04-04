@@ -108,11 +108,19 @@ int main()
             cycle = 50;
         else
             cycle = 10;
+            
+        count = 1;
+        cout<<"优化第一个二重循环部分"<<endl;
+        count=1;
+        QueryPerformanceFrequency(&tc3);
+        QueryPerformanceCounter(&t5);
         while (count < cycle)
         {
             Gauss_Part1(n);
             count++;
         }
+        QueryPerformanceCounter(&t6);
+        cout<<n<<" "<<count<<" "<<((t6.QuadPart - t5.QuadPart)*1000.0 / tc3.QuadPart)<<"ms"<<endl;
     }
     cout<<"all";
     return 0;

@@ -117,11 +117,18 @@ int main()
             cycle = 50;
         else
             cycle = 10;
+        count = 1;
+        cout<<"全部优化"<<endl;
+        count = 1;
+        QueryPerformanceFrequency(&tc2);
+        QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
             Gauss_SSE(n);
             count++;
         }
+        QueryPerformanceCounter(&t4);
+        cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
     }
     cout<<endl;
     return 0;

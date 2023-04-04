@@ -97,11 +97,17 @@ int main()
             cycle = 50;
         else
             cycle = 10;
+        count = 1;
+        cout<<"常规算法："<<endl;
+        QueryPerformanceFrequency(&tc1);
+        QueryPerformanceCounter(&t1);
         while (count < cycle)
         {
             Gauss_Normal(n);
             count++;
         }
+        QueryPerformanceCounter(&t2);
+        cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<"ms"<<endl;
     }
     cout<<"finish"<<endl;
     return 0;
