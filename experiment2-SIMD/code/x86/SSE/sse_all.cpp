@@ -70,19 +70,19 @@ void Gauss_SSE(int n)
 
         for (i = k + 1; i < n; i++)
         {
-            float temp2[4] = {c[i][k], c[i][k], c[i][k], c[i][k]};
+            float temp2[4] = {d[i][k], d[i][k], d[i][k], d[i][k]};
             t1 = _mm_loadu_ps(temp2);
             for (j = k + 1; j + 4 < n; j += 4)
             {
-                t2 = _mm_loadu_ps(c[k] + j);
-                t3 = _mm_loadu_ps(c[i] + j);
+                t2 = _mm_loadu_ps(d[k] + j);
+                t3 = _mm_loadu_ps(d[i] + j);
                 t4 = _mm_mul_ps(t1, t2);
                 t3 = _mm_sub_ps(t3, t4);
-                _mm_storeu_ps(c[i] + j, t3);
+                _mm_storeu_ps(d[i] + j, t3);
             }
             for (j = j; j < n; j++)
-                c[i][j] -= c[i][k] * c[k][j];
-            c[i][k] = 0;
+                d[i][j] -= d[i][k] * d[k][j];
+            d[i][k] = 0;
         }
     }
 }

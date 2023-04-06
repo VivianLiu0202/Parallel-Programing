@@ -56,68 +56,52 @@ void Gauss_Normal(int n)
 {
     for (int k = 0; k < n; k++)
     {
-        float temp = d[k][k];
+        float temp = a[k][k];
         for (int j = k; j < n; j++)
-            d[k][j] /= temp; // 可以进行向量化，用SIMD并行优化
+            a[k][j] /= temp; // 可以进行向量化，用SIMD并行优化
         for (int i = k + 1; i < n; i++)
         {
+            // float temp2 = a[i][k];
             for (int j = k + 1; j < n; j++)
-                d[i][j] -= d[i][k] * d[k][j]; // 可以进行向量化
-            d[i][k] = 0;
-        }
-    }
-}
-
-void Gauss_Part1(int n)
-{
-    int i,j,k;
-    __m256_u t1,t2,t3,t4;//定义4个向量寄存器
-    for(k = 0;k<n;k++)
-    {
-        float temp[8] = {a[k][k],a[k][k],a[k][k],a[k][k],a[k][k],a[k][k],a[k][k],a[k][k]};
-        t1 = _mm256_loadu_ps(temp);//加载到t1向量寄存器
-        for(int j = k+1;j+8<=n;j+=8){
-            t2=_mm256_loadu_ps(a[k]+j);//把内存中从b[k][j]开始的四个单精度浮点数加载到t2寄存器
-            t3=_mm256_div_ps(t2,t1);//相除结果放到t3寄存器
-            _mm256_storeu_ps(a[k]+j,t3);//把t3寄存器的值放回内存
-        }
-        for(j;j<n;j++){
-            a[k][j]/=a[k][k];
-        }
-        a[k][k]=1.0;
-
-        for (i = k + 1; i < n; i++)
-        {
-            for (j = k + 1; j < n; j++)
-                a[i][j] -= a[i][k] * a[k][j];
+                a[i][j] -= a[i][k] * a[k][j]; // 可以进行向量化
             a[i][k] = 0;
         }
     }
 }
 
-void Gauss_Part2(int n)
+void Gauss_SSE(int n)
 {
     int i, j, k;
-    __m256_u t1, t2, t3, t4;
+    __m128 t1, t2, t3, t4;
     for (k = 0; k < n; k++)
     {
-        for (j = k; j < n; j++)
-            c[k][j] /= c[k][k];
-
-        for(i=k+1;i<n;i++)
+        float temp[4] = {d[k][k], d[k][k], d[k][k], d[k][k]};
+        t1 = _mm_loadu_ps(temp);
+        for (j = k + 1; j + 4 <= n; j += 4)
         {
-            float temp2[8]={c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k]};
-            t1 = _mm256_loadu_ps(temp2);
-            for(j=k+1;j+8<=n;j+=8)
+            t2 = _mm_loadu_ps(d[k] + j); // 把内存中从d[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t3 = _mm_div_ps(t2, t1);     // 相除结果放到t3寄存器
+            _mm_storeu_ps(d[k] + j, t3); // 把t3寄存器的值放回内存
+        }
+        for (j; j < n; j++)
+            d[k][j] /= d[k][k]; // 处理不能被4整除的
+        d[k][k] = 1.0;
+
+        for (i = k + 1; i < n; i++)
+        {
+            float temp2[4] = {d[i][k], d[i][k], d[i][k], d[i][k]};
+            t1 = _mm_loadu_ps(temp2);
+            for (j = k + 1; j + 4 < n; j += 4)
             {
-                t2=_mm256_loadu_ps(b[k]+j);
-                t3=_mm256_loadu_ps(b[k]+j);
-                t4=_mm256_mul_ps(t1,t2);
-                t3=_mm256_sub_ps(t3,t4);
-                _mm256_storeu_ps(b[i]+j,t3);
+                t2 = _mm_loadu_ps(d[k] + j);
+                t3 = _mm_loadu_ps(d[i] + j);
+                t4 = _mm_mul_ps(t1, t2);
+                t3 = _mm_sub_ps(t3, t4);
+                _mm_storeu_ps(d[i] + j, t3);
             }
-            for(j=j;j<n;j++) c[i][j] -= c[i][k]*c[k][j];
-            c[i][k]=0;
+            for (j = j; j < n; j++)
+                d[i][j] -= d[i][k] * d[k][j];
+            d[i][k] = 0;
         }
     }
 }
@@ -156,6 +140,42 @@ void Gauss_AVX(int n)
             b[i][k]=0;
         }
 
+    }
+}
+
+void Gauss_AVX512(int n)
+{
+    int i,j,k;
+    __m512_u t1,t2,t3,t4;//定义4个向量寄存器
+    for(k = 0;k<n;k++)
+    {
+        float temp[16] = {c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k],c[k][k]};
+        t1 = _mm512_loadu_ps(temp);//加载到t1向量寄存器
+        for(int j = k+1;j+16<=n;j+=16){
+            t2=_mm512_loadu_ps(c[k]+j);//把内存中从b[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t3=_mm512_div_ps(t2,t1);//相除结果放到t3寄存器
+            _mm512_storeu_ps(c[k]+j,t3);//把t3寄存器的值放回内存
+        }
+        for(j;j<n;j++){
+            c[k][j]/=c[k][k];
+        }
+        c[k][k]=1.0;
+
+        for(i=k+1;i<n;i++)
+        {
+            float temp2[16]={c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k],c[i][k]};
+            t1 = _mm512_loadu_ps(temp2);
+            for(j=k+1;j+16<=n;j+=16)
+            {
+                t2=_mm512_loadu_ps(c[k]+j);
+                t3=_mm512_loadu_ps(c[k]+j);
+                t4=_mm512_mul_ps(t1,t2);
+                t3=_mm512_sub_ps(t3,t4);
+                _mm512_storeu_ps(c[i]+j,t3);
+            }
+            for(j=j;j<n;j++) c[i][j] -= c[i][k]*c[k][j];
+            c[i][k]=0;
+        }
     }
 }
 
@@ -204,38 +224,38 @@ int main()
         QueryPerformanceCounter(&t2);
         cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<"ms"<<endl;
 
-        cout<<"优化第一个二重循环部分"<<endl;
+        cout<<"SSE算法"<<endl;
         count=1;
         QueryPerformanceFrequency(&tc3);
         QueryPerformanceCounter(&t5);
         while (count < cycle)
         {
-            Gauss_Part1(n);
+            Gauss_SSE(n);
             count++;
         }
         QueryPerformanceCounter(&t6);
         cout<<n<<" "<<count<<" "<<((t6.QuadPart - t5.QuadPart)*1000.0 / tc3.QuadPart)<<"ms"<<endl;
 
 
-        cout<<"优化第二个三重循环部分"<<endl;
+        cout<<"AVX算法"<<endl;
         count=1;
         QueryPerformanceFrequency(&tc4);
         QueryPerformanceCounter(&t7);
         while (count < cycle)
         {
-            Gauss_Part2(n);
+            Gauss_AVX(n);
             count++;
         }
         QueryPerformanceCounter(&t8);
         cout<<n<<" "<<count<<" "<<((t8.QuadPart - t7.QuadPart)*1000.0 / tc4.QuadPart)<<"ms"<<endl;
 
-        cout<<"全部优化"<<endl;
+        cout<<"AVX512算法"<<endl;
         count = 1;
         QueryPerformanceFrequency(&tc2);
         QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
-            Gauss_AVX(n);
+            Gauss_AVX512(n);
             count++;
         }
         QueryPerformanceCounter(&t4);

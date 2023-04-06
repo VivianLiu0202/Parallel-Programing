@@ -1,0 +1,17 @@
+# depslib dependency file v1.0
+1680791514 source:c:\users\liuvivian\desktop\sse\avx.cpp
+	<iostream>
+	<windows.h>
+	<xmmintrin.h>
+	<emmintrin.h>
+	<immintrin.h>
+	<ammintrin.h>
+	<sys/time.h>
+
+1680789051 source:c:\users\liuvivian\desktop\sse\main.cpp
+	<iostream>
+	<windows.h>
+	<xmmintrin.h>
+	<emmintrin.h>
+	<sys/time.h>
+
