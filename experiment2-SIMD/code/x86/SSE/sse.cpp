@@ -1,5 +1,5 @@
 #include <iostream>
-#include<windows.h>
+#include <windows.h>
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <sys/time.h>
@@ -159,6 +159,43 @@ void Gauss_SSE(int n)
             d[i][k] = 0;
         }
     }
+}
+
+void Gauss_SSE_aligned(int n)
+{
+    int i, j, k;
+    __m128 t1, t2, t3, t4;
+    for (k = 0; k < n; k++)
+    {
+        float temp[4] = {d[k][k], d[k][k], d[k][k], d[k][k]};
+        t1 = _mm_loada_ps(temp);
+        for (j = k ; j + 4 < n; j += 4)
+        {
+            t2 = _mm_loada_ps(d[k] + j); // 把内存中从d[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t3 = _mm_div_ps(t2, t1);     // 相除结果放到t3寄存器
+            _mm_storea_ps(d[k] + j, t3); // 把t3寄存器的值放回内存
+        }
+        for (j; j < n; j++)
+            d[k][j] /= d[k][k]; // 处理不能被4整除的
+        d[k][k] = 1.0;
+
+        for (i = k + 1; i < n; i++)
+        {
+            float temp2[4] = {d[i][k], d[i][k], d[i][k], d[i][k]};
+            t1 = _mm_loadu_ps(temp2);
+            for (j = k ; j + 4 < n; j += 4)
+            {
+                t2 = _mm_loadu_ps(d[k] + j);
+                t3 = _mm_loadu_ps(d[i] + j);
+                t4 = _mm_mul_ps(t1, t2);
+                t3 = _mm_sub_ps(t3, t4);
+                _mm_storeu_ps(d[i] + j, t3);
+            }
+            for (j = j; j < n; j++)
+                d[i][j] -= d[i][k] * d[k][j];
+            d[i][k] = 0;
+        }
+    } 
 }
 
 void Print(int n, float m[][2000]) // 打印结果
