@@ -7,7 +7,7 @@
 #include<sys/time.h>
 using namespace std;
 
-float a[2000][2000], b[2000][2000], c[2000][2000], d[2000][2000];
+float a[2000][2000], b[2000][2000], c[2000][2000], d[2000][2000] ,e[2000][2000];
 void Initialize(int n)
 {
     for (int i = 0; i < n; i++)
@@ -17,6 +17,7 @@ void Initialize(int n)
         b[i][i] = 1.0;
         c[i][i] = 1.0;
         d[i][i] = 1.0;
+        e[i][i] = 1.0;
 
         // 下三角元素初始化为0
         for (int j = 0; j < i; j++)
@@ -25,6 +26,7 @@ void Initialize(int n)
             b[i][j] = 0;
             c[i][j] = 0;
             d[i][j] = 0;
+            e[i][j] = 0;
         }
 
         // 上三角元素初始化为随机数
@@ -34,6 +36,7 @@ void Initialize(int n)
             b[i][j] = a[i][j];
             c[i][j] = a[i][j];
             d[i][j] = a[i][j];
+            e[i][j] = a[i][j];
         }
     }
     for (int k = 0; k < n; k++)
@@ -47,6 +50,7 @@ void Initialize(int n)
                 b[i][j] += b[k][j];
                 c[i][j] += c[k][j];
                 d[i][j] += d[k][j];
+                e[i][j] += e[k][j];
             }
         }
     }
@@ -122,7 +126,7 @@ void Gauss_Part2(int n)
     }
 }
 
-void Gauss_AVX(int n)
+void Gauss_AVX_unaligned(int n)
 {
     int i,j,k;
     __m256_u t1,t2,t3,t4;//定义4个向量寄存器
@@ -155,9 +159,55 @@ void Gauss_AVX(int n)
             for(j=j;j<n;j++) b[i][j] -= b[i][k]*b[k][j];
             b[i][k]=0;
         }
-
     }
 }
+
+void Gauss_AVX_aligned(int n)
+{
+    int i,j,k;
+    __m256_u t1,t2,t3,t4;//定义4个向量寄存器
+    for(k = 0;k<n;k++)
+    {
+        float temp[8] = {e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k]};
+        t1 = _mm256_load_ps(temp);//加载到t1向量寄存器
+        j=k+1;
+        while((k*n+j)%8!=0){
+            e[k][j]=e[k][j]*1.0/e[k][k];
+            j++;
+        }
+        for( ;j+8<=n;j+=8){
+            t2=_mm256_load_ps(e[k]+j);//把内存中从b[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t3=_mm256_div_ps(t2,t1);//相除结果放到t3寄存器
+            _mm256_store_ps(e[k]+j,t3);//把t3寄存器的值放回内存
+        }
+        for(j;j<n;j++){
+            e[k][j]/=e[k][k];
+        }
+        e[k][k]=1.0;
+
+        for(i=k+1;i<n;i++)
+        {
+            float temp2[8]={e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k]};
+            t1 = _mm256_load_ps(temp2);
+            j=k+1;
+            while((k*n+j)%8!=0){//对齐操作
+                e[i][j]=e[i][j]-e[k][j]*e[i][k];
+                j++;
+            }
+            for( ;j+8<=n;j+=8)
+            {
+                t2=_mm256_load_ps(e[k]+j);
+                t3=_mm256_load_ps(e[k]+j);
+                t4=_mm256_mul_ps(t1,t2);
+                t3=_mm256_sub_ps(t3,t4);
+                _mm256_store_ps(e[i]+j,t3);
+            }
+            for( ;j<n;j++) e[i][j] -= e[i][k]*e[k][j];
+            e[i][k]=0;
+        }
+    }
+}
+
 
 void Print(int n, float m[][2000]) // 打印结果
 {
@@ -177,7 +227,7 @@ int main()
     int count;
     int cycle;
     LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
-    LARGE_INTEGER t5,t6,t7,t8,tc3,tc4;
+    LARGE_INTEGER t5,t6,t7,t8,tc3,tc4,t9,t10,tc5;
     int ans=0;
     for (int n = 2; n <= N; n *= 2)
     {
@@ -229,17 +279,29 @@ int main()
         QueryPerformanceCounter(&t8);
         cout<<n<<" "<<count<<" "<<((t8.QuadPart - t7.QuadPart)*1000.0 / tc4.QuadPart)<<"ms"<<endl;
 
-        cout<<"全部优化"<<endl;
+        cout<<"AVX_unaligned"<<endl;
         count = 1;
         QueryPerformanceFrequency(&tc2);
         QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
-            Gauss_AVX(n);
+            Gauss_AVX_unaligned(n);
             count++;
         }
         QueryPerformanceCounter(&t4);
         cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
+
+        cout<<"AVX_aligned"<<endl;
+        count = 1;
+        QueryPerformanceFrequency(&tc5);
+        QueryPerformanceCounter(&t9);
+        while (count < cycle)
+        {
+            Gauss_AVX_aligned(n);
+            count++;
+        }
+        QueryPerformanceCounter(&t10);
+        cout<<n<<" "<<count<<" "<<((t10.QuadPart - t9.QuadPart)*1000.0 / tc5.QuadPart)<<"ms"<<endl;
         cout<<endl<<endl;
     }
     cout<<endl;
