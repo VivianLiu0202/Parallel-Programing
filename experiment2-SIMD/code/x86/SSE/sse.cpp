@@ -124,7 +124,7 @@ void Gauss_Part2(int n) // 对第二个部分进行SSE向量化并行算法
     }
 }
 
-void Gauss_SSE(int n)
+void Gauss_SSE_unaligned(int n)
 {
     int i, j, k;
     __m128 t1, t2, t3, t4;
@@ -168,12 +168,12 @@ void Gauss_SSE_aligned(int n)
     for (k = 0; k < n; k++)
     {
         float temp[4] = {d[k][k], d[k][k], d[k][k], d[k][k]};
-        t1 = _mm_loada_ps(temp);
+        t1 = _mm_load_ps(temp);
         for (j = k ; j + 4 < n; j += 4)
         {
-            t2 = _mm_loada_ps(d[k] + j); // 把内存中从d[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t2 = _mm_load_ps(d[k] + j); // 把内存中从d[k][j]开始的四个单精度浮点数加载到t2寄存器
             t3 = _mm_div_ps(t2, t1);     // 相除结果放到t3寄存器
-            _mm_storea_ps(d[k] + j, t3); // 把t3寄存器的值放回内存
+            _mm_store_ps(d[k] + j, t3); // 把t3寄存器的值放回内存
         }
         for (j; j < n; j++)
             d[k][j] /= d[k][k]; // 处理不能被4整除的
@@ -276,7 +276,7 @@ int main()
         QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
-            Gauss_SSE(n);
+            Gauss_SSE_unaligned(n);
             count++;
         }
         QueryPerformanceCounter(&t4);

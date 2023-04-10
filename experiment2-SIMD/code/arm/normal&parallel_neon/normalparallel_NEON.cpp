@@ -120,7 +120,7 @@ void Gauss_Part2(int n){ //对第二个部分进行向量化的SSE并行算法
         }
     }
 }
-void Gauss_NEON(int n)
+void Gauss_NEON_unaligned(int n)
 {
     int i,j,k;
     float32x4_t t1,t2,t3,t4; //定义4个向量寄存器
@@ -158,6 +158,52 @@ void Gauss_NEON(int n)
     }
 }
 
+void Gauss_NEON_aligned(int n)\
+{
+    int i,j,k;
+    float32x4_t t1,t2,t3,t4; //定义4个向量寄存器
+    for(k=0;k<n;k++)
+    {
+        float32x4_t t1=vmovq_n_f32(d[k][k]);
+        j = k+1; 
+
+        while((k*n+j)%4!=0){//对齐操作
+            d[k][j]=d[k][j]*1.0/d[k][k];
+            j++;
+        }
+        for(;j+4<=n;j+=4)
+        {
+            t2=vld1q_f32(d[k]+j); //把内存中从B[k][j]开始的四个单精度浮点数加载到t2寄存器
+            t3=vdivq_f32(t2,t1); //相除结果放到t3寄存器
+            vst1q_f32(d[k]+j,t3); //把t3寄存器的值放回内存
+        }
+        for(j;j<n;j++) //处理剩下的不能被4整除的
+            d[k][j]/=d[k][k];
+        d[k][k]=1.0;
+        //以上完成了对第一个部分的向量化
+
+        for(i=k+1;i<n;i++)
+        {
+            float32x4_t t1 =  vmovq_n_f32(d[i][k]);
+            j=k+1;
+            while((k*n+j)%4!=0){//对齐操作
+                d[i][j]=d[i][j]-d[k][j]*d[i][k];
+                j++;
+            }
+            for(;j+4<=n;j+=4)
+            {
+                t2=vld1q_f32(d[k]+j);
+                t3=vld1q_f32(d[i]+j);
+                t4=vmulq_f32(t1,t2);
+                t3=vsubq_f32(t3,t4);
+                vst1q_f32(d[i]+j,t3);
+            }
+            for(j=j;j<n;j++) d[i][j] -= d[i][k]*d[k][j];
+            d[i][k]=0.0;
+        }
+    }
+}
+
 void Print(int n,float m[][2000]){//打印结果
 	int i,j;
 	for(i=0;i<n;i++){
@@ -173,7 +219,6 @@ int main()
     int count,cycle;
     struct timeval head1, head2, head3, head4;
     struct timeval tail1, tail2, tail3, tail4;
-    // LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
     for (int n = 2; n <= N; n *= 2)
     {
         Initialize(n);
@@ -190,7 +235,7 @@ int main()
         gettimeofday(&head1, NULL);
         while (count < cycle)
         {
-            Gauss_Normal(n);
+            Gauss_NEON_aligned(n);
             count++;
         }
 
@@ -201,7 +246,7 @@ int main()
 
         while (count < cycle)
         {
-            Gauss_NEON(n);
+            Gauss_NEON_unaligned(n);
             count++;
         }
         gettimeofday(&tail2, NULL);
