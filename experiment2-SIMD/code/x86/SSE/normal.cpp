@@ -67,6 +67,8 @@ void Gauss_Normal(int n)
         }
     }
 }
+
+
 void Print(int n, float m[][2000]) // 打印结果
 {
     for (int i = 0; i < n; i++)
