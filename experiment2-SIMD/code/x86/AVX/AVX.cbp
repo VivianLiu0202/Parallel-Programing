@@ -13,13 +13,13 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-march=prescott" />
 					<Add option="-std=c++17" />
+					<Add option="-m64" />
 					<Add option="-g" />
 					<Add option="-march=native" />
 				</Compiler>
 				<Linker>
-					<Add option="-O1" />
+					<Add option="-m64" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -40,6 +40,8 @@
 			<Add option="-fexceptions" />
 		</Compiler>
 		<Unit filename="../../../../../AVX/main.cpp" />
-		<Extensions />
+		<Extensions>
+			<lib_finder disable_auto="1" />
+		</Extensions>
 	</Project>
 </CodeBlocks_project_file>

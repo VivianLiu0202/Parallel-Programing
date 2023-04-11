@@ -60,7 +60,6 @@ void Gauss_Normal(int n)
             a[k][j] /= temp; // 可以进行向量化，用SIMD并行优化
         for (int i = k + 1; i < n; i++)
         {
-            // float temp2 = a[i][k];
             for (int j = k + 1; j < n; j++)
                 a[i][j] -= a[i][k] * a[k][j]; // 可以进行向量化
             a[i][k] = 0;

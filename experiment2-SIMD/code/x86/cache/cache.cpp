@@ -52,13 +52,12 @@ void Gauss_Normal(int n)
     for (int k = 0; k < n; k++)
     {
         float temp = a[k][k];
-        for (int j = k; j < n; j++)
+        for (int j = k+1; j < n; j++)
             a[k][j] /= temp; // 可以进行向量化，用SIMD并行优化
         for (int i = k + 1; i < n; i++)
         {
-            // float temp2 = a[i][k];
             for (int j = k + 1; j < n; j++)
-                a[i][j] -= a[i][k] * a[k][j]; // 可以进行向量化
+                a[i][j] -= a[i][k]* a[k][j]; // 可以进行向量化
             a[i][k] = 0;
         }
     }
@@ -66,20 +65,59 @@ void Gauss_Normal(int n)
 
 void Gauss_cache(int n)
 {
-    for(int k = 0;k < n; k++){
-        for(int j = k + 1;j < n; j++){
-            a[k][j] = a[k][j] * 1.0 / a[k][k];
-        }
-        a[k][k] = 1.0;
-        for(int i = k + 1;i < n; i++){
-            for(int j = k + 1;j <n; j++){
-                a[i][j] -= b[k][i] * a[k][j];
+    // const int block_size = 16;
+    // for (int k = 0; k < n; k += block_size)
+    // {
+    //     for (int j = k; j < n; j++)
+    //     {
+    //         for(int i = k;i<=k+block_size;i++)
+    //             a[i][j] /= a[i][i];
+    //         // for (int i = k; i <n; i++) b[i][j] /= float(b[i][i]);
+    //         // for (int i = j + 1; i < n; i++) b[i][j] /= float(b[i][i]);
+    //     }
+    //     // for (int j = k + block_size; j < n; j++)
+    //     // {
+    //     //     for (int i = k; i <= j; i++) b[i][j] /= b[i][i];
+    //     //     for (int i = j + 1; i < n; i++) b[i][j] /= b[i][i];
+    //     // }
+    //     for (int i = k + 1; i < n; i++)
+    //     {
+    //         for (int j = k+1; j < n; j++)
+    //         {
+    //             b[i][j] -= b[i][k] * b[k][j];
+    //         }
+    //         for (int j = k + block_size; j < n; j++)
+    //         {
+    //             b[i][j] -= b[i][k] * b[k][j];
+    //         }
+    //          b[i][k] = 0;
+    //     }
+    // }
+
+    const int BLOCK_SIZE = 16; // 定义矩阵块大小
+    for (int k = 0; k < n; k += BLOCK_SIZE) // 对矩阵块进行操作
+    {
+        for (int i = k+1; i <= k+BLOCK_SIZE && i<n; i++) // 对矩阵块行进行操作
+        {
+            float temp = b[i][i];
+            for (int j = k; j <= k + BLOCK_SIZE && j < n; j++) // 对矩阵块列进行操作
+            {
+                b[i][j] /= temp;
             }
-            a[i][k] = 0;
+            b[i][i]=1.0;
+        }
+        for (int i = k + BLOCK_SIZE; i < n; i++) // 对矩阵块下方的行进行操作
+        {
+            for (int j = k+1; j <= k + BLOCK_SIZE && j < n; j++) // 对矩阵块列进行操作
+            {
+                b[i][j] -= b[i][k] * b[k][j];
+            }
+            b[i][k]=0;
         }
     }
-    return;
 }
+
+
 void Print(int n, float m[][2000]) // 打印结果
 {
     for (int i = 0; i < n; i++)
@@ -97,13 +135,12 @@ int main()
     int count;
     int cycle;
     LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
-    LARGE_INTEGER t5,t6,t7,t8,tc3,tc4;
     for (int n = 2; n <= N; n *= 2)
     {
         Initialize(n);
         count = 1;
         if (n <= 30)
-            cycle = 1000;
+            cycle = 500;
         else if (n <= 70)
             cycle = 100;
         else if (n <= 300)
@@ -133,6 +170,11 @@ int main()
         }
         QueryPerformanceCounter(&t4);
         cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
+
+        Print(n,a);
+        cout<<endl<<endl<<endl;
+        Print(n,b);
+        cout<<endl<<endl<<endl;
     }
     cout<<"finish"<<endl;
     return 0;
