@@ -231,7 +231,7 @@ int main()
             cycle = 10;
 
 
-                count = 1;
+        count = 1;
         gettimeofday(&head3, NULL);
 
         cout<<"普通高斯："<<endl;
