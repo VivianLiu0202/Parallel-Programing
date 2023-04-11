@@ -1,5 +1,6 @@
 #include<iostream>
 #include<xmmintrin.h>
+#include <windows.h>
 #include<emmintrin.h>
 #include<immintrin.h>
 #include<ammintrin.h>
@@ -195,7 +196,8 @@ int main()
     int N = 1024;
     int count;
     int cycle;
-    struct timeval start1,end1,start2,end2,start3,end3,start4,end4;
+    LARGE_INTEGER t1,t2,tc1,t3,t4,tc2;
+    LARGE_INTEGER t5,t6,t7,t8,tc3,tc4,t9,t10,tc5;
     int ans=0;
     for (int n = 2; n <= N; n *= 2)
     {
@@ -212,50 +214,54 @@ int main()
             cycle = 10;
         cout<<"第"<<ans<<"次："<<endl;
         cout<<"常规算法："<<endl;
-        gettimeofday(&start1,NULL);
+        QueryPerformanceFrequency(&tc1);
+        QueryPerformanceCounter(&t1);
         while (count < cycle)
         {
             Gauss_Normal(n);
             count++;
         }
-        gettimeofday(&start1,NULL);
-        cout <<n<<" "<<count<<" "<< (long long)1000000*end1.tv_sec+(long long)end1.tv_usec- (long long)1000000*start1.tv_sec-(long long)start1.tv_usec<<"ms"<<endl;
+        QueryPerformanceCounter(&t2);
+        cout<<n<<" "<<count<<" "<<((t2.QuadPart - t1.QuadPart)*1000.0 / tc1.QuadPart)<<"ms"<<endl;
 
         cout<<"SSE算法"<<endl;
         count=1;
-        gettimeofday(&start2,NULL);
+        QueryPerformanceFrequency(&tc2);
+        QueryPerformanceCounter(&t3);
         while (count < cycle)
         {
             Gauss_SSE(n);
             count++;
         }
-        gettimeofday(&end2,NULL);
-        cout<<n<<" "<<count<<" "<<(long long)1000000*end2.tv_sec+(long long)end2.tv_usec- (long long)1000000*start2.tv_sec-(long long)start2.tv_usec<<"ms"<<endl;
+        QueryPerformanceCounter(&t4);
+        cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
 
 
         cout<<"AVX算法"<<endl;
         count=1;
-        gettimeofday(&start3,NULL);
+        QueryPerformanceFrequency(&tc3);
+        QueryPerformanceCounter(&t5);
         while (count < cycle)
         {
             Gauss_AVX(n);
             count++;
         }
-        gettimeofday(&end3,NULL);
-        cout<<n<<" "<<count<<" "<<(long long)1000000*end3.tv_sec+(long long)end3.tv_usec- (long long)1000000*start3.tv_sec-(long long)start3.tv_usec<<"ms"<<endl;
+        QueryPerformanceCounter(&t6);
+        cout<<n<<" "<<count<<" "<<((t6.QuadPart - t5.QuadPart)*1000.0 / tc3.QuadPart)<<"ms"<<endl;
 
 
 
         cout<<"AVX512算法"<<endl;
         count = 1;
-        gettimeofday(&start4,NULL);
+        QueryPerformanceFrequency(&tc4);
+        QueryPerformanceCounter(&t7);
         while (count < cycle)
         {
             Gauss_AVX512(n);
             count++;
         }
-        gettimeofday(&end4,NULL);
-        cout<<n<<" "<<count<<" "<<(long long)1000000*end4.tv_sec+(long long)end4.tv_usec- (long long)1000000*start4.tv_sec-(long long)start4.tv_usec<<"ms"<<endl;
+        QueryPerformanceCounter(&t8);
+        cout<<n<<" "<<count<<" "<<((t8.QuadPart - t7.QuadPart)*1000.0 / tc4.QuadPart)<<"ms"<<endl;
 
         cout<<endl<<endl;
     }
