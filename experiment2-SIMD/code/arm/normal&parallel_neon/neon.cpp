@@ -13,7 +13,6 @@ void Initialize(int n)
         b[i][i] = 1.0;
         c[i][i] = 1.0;
         d[i][i] = 1.0;
-
         // 下三角元素初始化为0
         for (int j = 0; j < i; j++)
         {
@@ -22,7 +21,6 @@ void Initialize(int n)
             c[i][j] = 0;
             d[i][j] = 0;
         }
-
         // 上三角元素初始化为随机数
         for (int j = i + 1; j < n; j++)
         {
@@ -158,7 +156,7 @@ void Gauss_NEON_unaligned(int n)
     }
 }
 
-void Gauss_NEON_aligned(int n)\
+void Gauss_NEON_aligned(int n)
 {
     int i,j,k;
     float32x4_t t1,t2,t3,t4; //定义4个向量寄存器
@@ -232,6 +230,21 @@ int main()
         else
             cycle = 10;
 
+
+        count = 1;
+        gettimeofday(&head3, NULL);
+
+        cout<<"普通高斯："<<endl;
+        while (count < cycle)
+        {
+            Gauss_Normal(n);
+            count++;
+        }
+        gettimeofday(&tail3, NULL);
+        cout << n << " " << count << " " << (tail3.tv_sec - head3.tv_sec) * 1000.0 + (tail3.tv_usec - head3.tv_usec) / 1000.0 << "ms" << endl;
+
+        cout<<"对齐的neon"<<endl;
+        count=1;
         gettimeofday(&head1, NULL);
         while (count < cycle)
         {
@@ -241,9 +254,11 @@ int main()
 
         gettimeofday(&tail1, NULL);
         cout << n << " " << count << " " << (tail1.tv_sec - head1.tv_sec) * 1000.0 + (tail1.tv_usec - head1.tv_usec) / 1000.0 << "ms" << endl;
+
+
+        cout<<"未对齐的neon"<<endl;
         count = 1;
         gettimeofday(&head2, NULL);
-
         while (count < cycle)
         {
             Gauss_NEON_unaligned(n);
@@ -251,6 +266,7 @@ int main()
         }
         gettimeofday(&tail2, NULL);
         cout << n << " " << count << " " << (tail2.tv_sec - head2.tv_sec) * 1000.0 + (tail2.tv_usec - head2.tv_usec) / 1000.0 << "ms" << endl;
+        cout<<endl;
     }
     return 0;
 }
