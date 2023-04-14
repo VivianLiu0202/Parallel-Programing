@@ -2,13 +2,13 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="AVX" />
-		<Option execution_dir="C:/Users/LiuVivian/Desktop/AVX/" />
+		<Option title="avx" />
+		<Option execution_dir="C:/Users/LiuVivian/Desktop/avx/" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/AVX" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/avx" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
@@ -23,7 +23,7 @@
 				</Linker>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/AVX" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/avx" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />

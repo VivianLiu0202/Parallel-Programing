@@ -162,52 +162,6 @@ void Gauss_AVX_unaligned(int n)
     }
 }
 
-void Gauss_AVX_aligned(int n)
-{
-    int i,j,k;
-    __m256_u t1,t2,t3,t4;//定义4个向量寄存器
-    for(k = 0;k<n;k++)
-    {
-        float temp[8] = {e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k],e[k][k]};
-        t1 = _mm256_load_ps(temp);//加载到t1向量寄存器
-        j=k+1;
-        while((k*n+j)%8!=0){
-            e[k][j]=e[k][j]*1.0/e[k][k];
-            j++;
-        }
-        for( ;j+8<=n;j+=8){
-            t2=_mm256_load_ps(e[k]+j);//把内存中从b[k][j]开始的四个单精度浮点数加载到t2寄存器
-            t3=_mm256_div_ps(t2,t1);//相除结果放到t3寄存器
-            _mm256_store_ps(e[k]+j,t3);//把t3寄存器的值放回内存
-        }
-        for(j;j<n;j++){
-            e[k][j]/=e[k][k];
-        }
-        e[k][k]=1.0;
-
-        for(i=k+1;i<n;i++)
-        {
-            float temp2[8]={e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k],e[i][k]};
-            t1 = _mm256_load_ps(temp2);
-            j=k+1;
-            while((k*n+j)%8!=0){//对齐操作
-                e[i][j]=e[i][j]-e[k][j]*e[i][k];
-                j++;
-            }
-            for( ;j+8<=n;j+=8)
-            {
-                t2=_mm256_load_ps(e[k]+j);
-                t3=_mm256_load_ps(e[k]+j);
-                t4=_mm256_mul_ps(t1,t2);
-                t3=_mm256_sub_ps(t3,t4);
-                _mm256_store_ps(e[i]+j,t3);
-            }
-            for( ;j<n;j++) e[i][j] -= e[i][k]*e[k][j];
-            e[i][k]=0;
-        }
-    }
-}
-
 
 void Print(int n, float m[][2000]) // 打印结果
 {
@@ -290,18 +244,6 @@ int main()
         }
         QueryPerformanceCounter(&t4);
         cout<<n<<" "<<count<<" "<<((t4.QuadPart - t3.QuadPart)*1000.0 / tc2.QuadPart)<<"ms"<<endl;
-
-        cout<<"AVX_aligned"<<endl;
-        count = 1;
-        QueryPerformanceFrequency(&tc5);
-        QueryPerformanceCounter(&t9);
-        while (count < cycle)
-        {
-            Gauss_AVX_aligned(n);
-            count++;
-        }
-        QueryPerformanceCounter(&t10);
-        cout<<n<<" "<<count<<" "<<((t10.QuadPart - t9.QuadPart)*1000.0 / tc5.QuadPart)<<"ms"<<endl;
         cout<<endl<<endl;
     }
     cout<<endl;
