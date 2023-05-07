@@ -2,6 +2,7 @@
     "files.associations": {
         "iostream": "cpp",
         "ostream": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "random": "cpp"
     }
 }

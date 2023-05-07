@@ -3,7 +3,6 @@
 #include<pthread.h>
 #include<stdlib.h>
 #include<semaphore.h>
-#include<arm_neon.h>
 using namespace std;
 float Data[2000][2000],matrix[2000][2000];
 int n;
@@ -139,7 +138,7 @@ void Gauss_para_active()
 
 	}
 }
-void Gauss_para_statistic()
+void Gauss_para_static()
 {
 	int i;
 	sem_init(&sem_leader,0,0);
@@ -192,7 +191,7 @@ int main()
         else if (n <= 300)
             cycle = 50;
         else cycle = 10;
-        // ====================================== 块 ======================================
+        // ====================================== 动态 ======================================
         count=1;
         time=0;
 		while(count<cycle)
@@ -206,14 +205,14 @@ int main()
         }
 		cout << "动态线程："<<n<<" 时间："<< time/cycle << "ms" << endl;
         
-        // ====================================== 循环 ======================================
+        // ====================================== 静态 ======================================
         count=1;
         time=0;
 		while(count<cycle)
         {
             init_matrix();
             gettimeofday(&start2, NULL);
-            Gauss_para_statistic();
+            Gauss_para_static();
             gettimeofday(&end2, NULL);
             time += ((end2.tv_sec - start2.tv_sec) * 1000000 + (end2.tv_usec - start2.tv_usec)) * 1.0 / 1000;
             count++;
