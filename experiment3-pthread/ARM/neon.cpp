@@ -11,7 +11,7 @@ int n;
 typedef struct{
     int t_id;
 }threadParam_t2;
-const int num_threads=7;
+const int num_threads=20;
 //信号量定义
 sem_t sem_leader;
 sem_t sem_Division[num_threads-1];
@@ -211,19 +211,20 @@ void print_matrix()
 
 int main()
 {
-	int N=2000,count,cycle=1,step=10;
+	int N=2000,count,cycle=10,step=10;
     float time = 0;
     init_data();
-	for(n=10;n<=N;n+=step)
-    {
+    n=1000;
+	// for(n=10;n<=N;n+=step)
+    // {
         struct timeval start1,end1,start2,end2,start3,end3;
-        if (n <= 30)
-            cycle = 500;
-        else if (n <= 100)
-            cycle = 100;
-        else if (n <= 300)
-            cycle = 50;
-        else cycle = 10;
+        // if (n <= 30)
+        //     cycle = 500;
+        // else if (n <= 100)
+        //     cycle = 100;
+        // else if (n <= 300)
+        //     cycle = 50;
+        // else cycle = 10;
         // ====================================== serial ======================================
         count=1;
         time=0;
@@ -266,9 +267,9 @@ int main()
         }
 		cout << "NEON的pthread版本："<<n<<" 时间："<<  time/ cycle << "ms" << endl;
 
-		if(n==100) step=100;
-        if(n==1000) step=500;
-        cout<<endl<<endl;
-	}
+		// if(n==100) step=100;
+        // if(n==1000) step=500;
+        // cout<<endl<<endl;
+	// }
     return 0;
 }

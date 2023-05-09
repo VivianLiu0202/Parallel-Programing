@@ -5,29 +5,26 @@
 #include <arm_neon.h>
 #include <pthread.h> // pthread
 #include <semaphore.h>
-#include </opt/homebrew/Cellar/libomp/16.0.2/include/omp.h>
+#include <omp.h>
 using namespace std;
-ofstream res_stream;
 
 int NUM_THREADS = 8;
-const int num_threads=7;
 // ============================================== pthread 线程控制变量 ==============================================
 typedef struct
 {
     int t_id;
 } threadParam_t;
 
+sem_t sem_Division;
+pthread_barrier_t barrier;
 // ============================================== 运算变量 ==============================================
 int N;
 const int L = 100;
 const int LOOP = 50;
-float **Data;
+float **data;
 float **matrix;
 
-//信号量定义
-sem_t sem_leader;
-sem_t sem_Division[num_threads-1];
-sem_t sem_Elimination[num_threads-1];
+ofstream res_stream;
 
 void init_data()
 {
@@ -50,7 +47,6 @@ void init_matrix()
         for (int j = 0; j < N; j++)
             matrix[i][j] = Data[i][j];
 }
-
 // 串行算法
 void calculate_serial()
 {
@@ -71,7 +67,6 @@ void calculate_serial()
         }
     }
 }
-
 // SIMD并行算法
 void calculate_SIMD()
 {
@@ -109,7 +104,6 @@ void calculate_SIMD()
         }
     }
 }
-
 // 单独使用openmp进行simd优化
 void calculate_openmp_single_simd()
 {
@@ -142,13 +136,15 @@ void calculate_openmp_single_simd()
         }
     }
 }
-
-void *threadFunc2(void* param){//循环划分
-    threadParam_t *p=(threadParam_t*)param;
-    int t_id=p->t_id; //线程编号
-    for(int k=0;k<N;k++)
+// pthread_discrete 线程函数
+void *threadFunc(void *param)
+{
+    threadParam_t *thread_param_t = (threadParam_t *)param;
+    int t_id = thread_param_t->t_id;
+    for (int k = 0; k < N; k++)
     {
-        if(t_id==0)
+        // 如果当前是0号线程，则进行除法操作，其余线程处于等待状态
+        if (t_id == 0)
         {
             float32x4_t Akk = vmovq_n_f32(matrix[k][k]);
             int j;
@@ -166,79 +162,71 @@ void *threadFunc2(void* param){//循环划分
         }
         else
         {
-            sem_wait(&sem_Division[t_id-1]);
+            sem_wait(&sem_Division);
         }
 
-        // t_id 为 0 的线程唤醒其它工作线程，进行消去操作
-		if(t_id==0)
+        // 除法操作完成后，如果是0号线程，则需要唤醒其他线程
+        if (t_id == 0)
         {
-            for(int i=0;i<num_threads-1;i++)
-                sem_post(&sem_Division[i]);
-		}
-
-        //循环划分任务
-        float32x4_t t1,t2,t3,t4; //定义4个向量寄存器
-        int j;
-		for(int i=k+1+t_id;i<N;i+=num_threads)
-		{
-			float32x4_t t1 = vmovq_n_f32(matrix[i][k]);
-            for(j=k+1;j+4<=N;j+=4)
+            for (int i = 1; i < NUM_THREADS; i++)
             {
-                t2=vld1q_f32(matrix[k]+j);
-                t3=vld1q_f32(matrix[i]+j);
-                t4=vmulq_f32(t1,t2);
-                t3=vsubq_f32(t3,t4);
-                vst1q_f32(matrix[i]+j,t3);
+                sem_post(&sem_Division);
             }
-            for(j=j;j<N;j++)
-                matrix[i][j]-=matrix[i][k]*matrix[k][j];
-            matrix[i][k]=0.0;
-		}
-
-		if(t_id==0)
-        {
-            for(int i=0;i<num_threads-1;i++)
-                sem_wait(&sem_leader);// 等待其它 worker 完成消去
-            for(int i=0;i<num_threads-1;i++)
-                sem_post(&sem_Elimination[i]);// 通知其它 worker 进入下一轮
         }
         else
         {
-            sem_post(&sem_leader);// 通知 leader, 已完成消去任务
-            sem_wait(&sem_Elimination[t_id-1]);// 等待通知，进入下一轮
+            // 循环划分任务
+            for (int i = k + t_id; i < N; i += (NUM_THREADS - 1))
+            {
+                int j = k + 1;
+                float32x4_t Aik = vmovq_n_f32(matrix[i][k]);
+                for (j = k + 1; j + 3 < N; j += 4)
+                {
+                    float32x4_t Akj = vld1q_f32(matrix[k] + j);
+                    float32x4_t Aij = vld1q_f32(matrix[i] + j);
+                    float32x4_t AikMulAkj = vmulq_f32(Aik, Akj);
+                    Aij = vsubq_f32(Aij, AikMulAkj);
+                    vst1q_f32(matrix[i] + j, Aij);
+                }
+                for (; j < N; j++)
+                {
+                    matrix[i][j] = matrix[i][j] - matrix[i][k] * matrix[k][j];
+                }
+                matrix[i][k] = 0;
+            }
         }
-	}
-	pthread_exit(NULL);
 
+        // 所有线程进入下一轮
+        pthread_barrier_wait(&barrier);
+    }
+    pthread_exit(NULL);
+    return NULL;
 }
+// pthread 并行算法
+void calculate_pthread()
+{
+    // 信号量初始化
+    sem_init(&sem_Division, 0, 0);
+    pthread_barrier_init(&barrier, NULL, NUM_THREADS);
 
-void calculate_pthread(){
-	int i;
-    //初始化信号量
-	sem_init(&sem_leader,0,0);
-	for(i=0;i<num_threads-1;i++)
+    // 创建线程
+    pthread_t threads[NUM_THREADS];
+    threadParam_t thread_param_t[NUM_THREADS];
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        sem_init(&sem_Division[i],0,0);
-        sem_init(&sem_Elimination[i],0,0);
-	}
-    //创建线程
-	pthread_t *handles=new pthread_t[num_threads];//创建对应的handle
-    threadParam_t *param=new threadParam_t[num_threads];//创建对应的线程数据结构
-    for(int t_id=0;t_id<num_threads;t_id++)
-    {
-        param[t_id].t_id=t_id;
-    // }
-    // for(int t_id=0;t_id<num_threads;t_id++)
-    // {
-        pthread_create(&handles[t_id],NULL,threadFunc2,&param[t_id]);
+        thread_param_t[i].t_id = i;
+        pthread_create(&threads[i], NULL, threadFunc, (void *)(&thread_param_t[i]));
     }
-    for(int t_id=0;t_id<num_threads;t_id++)
+
+    // 加入执行线程
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        pthread_join(handles[t_id],NULL);
+        pthread_join(threads[i], NULL);
     }
-	sem_destroy(sem_Division);
-	sem_destroy(sem_Elimination);
-	sem_destroy(&sem_leader);
+
+    // 销毁信号量
+    sem_destroy(&sem_Division);
+    pthread_barrier_destroy(&barrier);
 }
 // 静态数据划分
 void calculate_openmp_schedule_static()
@@ -272,7 +260,289 @@ void calculate_openmp_schedule_static()
         }
     }
 }
+// 动态数据划分
+void calculate_openmp_schedule_dynamic()
+{
+    int i, j, k;
+    float tmp;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp single
+        {
+            tmp = matrix[k][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1.0;
+        }
+#pragma omp for schedule(simd \
+                         : dynamic)
+        for (i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
+// 自动调整数据划分
+void calculate_openmp_schedule_guided()
+{
+    int i, j, k;
+    float tmp;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp single
+        {
+            tmp = matrix[k][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1.0;
+        }
+#pragma omp for schedule(simd \
+                         : guided)
+        for (i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
+// 使用nowait
+void calculate_openmp_schedule_guided_nowait()
+{
+    int i, j, k;
+    float tmp;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp single
+        {
+            tmp = matrix[k][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1.0;
+        }
+#pragma omp for schedule(simd \
+                         : guided) nowait
+        for (i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
+// openmp + simd
+void calculate_openmp_schedule_guided_SIMD()
+{
+    int i, j, k;
+    float tmp;
+    float32x4_t Akk, Akj, Aik, Aij, AikMulAkj;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp, Akk, Akj, Aik, Aij, AikMulAkj) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+        // float Akk = matrix[k][k];
+        Akk = vmovq_n_f32(matrix[k][k]);
+        int j;
+        // 并行处理
+        tmp = matrix[k][k];
+#pragma omp single
+        {
+            for (j = k + 1; j + 3 < N; j += 4)
+            {
+                // float Akj = matrix[k][j];
+                Akj = vld1q_f32(matrix[k] + j);
+                // Akj = Akj / Akk;
+                Akj = vdivq_f32(Akj, Akk);
+                // Akj = matrix[k][j];
+                vst1q_f32(matrix[k] + j, Akj);
+            }
+            // 串行处理结尾
+            for (; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1;
+        }
+#pragma omp for schedule(simd \
+                         : guided)
+        for (int i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+            // float Aik = matrix[i][k];
+            Aik = vmovq_n_f32(matrix[i][k]);
+            for (j = k + 1; j + 3 < N; j += 4)
+            {
+                // float Akj = matrix[k][j];
+                Akj = vld1q_f32(matrix[k] + j);
+                // float Aij = matrix[i][j];
+                Aij = vld1q_f32(matrix[i] + j);
+                // AikMulAkj = matrix[i][k] * matrix[k][j];
+                AikMulAkj = vmulq_f32(Aik, Akj);
+                // Aij = Aij - AikMulAkj;
+                Aij = vsubq_f32(Aij, AikMulAkj);
+                // matrix[i][j] = Aij;
+                vst1q_f32(matrix[i] + j, Aij);
+            }
+            // 串行处理结尾
+            for (; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
 
+// 静态线程版本
+void calculate_openmp_static_thread()
+{
+    int i, j, k;
+    float tmp;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp single
+        {
+            tmp = matrix[k][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1.0;
+        }
+#pragma omp for schedule(simd \
+                         : guided)
+        for (i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
+// 动态线程版本
+void calculate_openmp_dynamic_thread()
+{
+    int i, j, k;
+    float tmp;
+    for (k = 0; k < N; k++)
+    {
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, tmp) shared(k, matrix, N)
+        {
+#pragma omp single
+            {
+                tmp = matrix[k][k];
+#pragma omp simd
+                for (j = k + 1; j < N; j++)
+                {
+                    matrix[k][j] = matrix[k][j] / tmp;
+                }
+                matrix[k][k] = 1.0;
+            }
+#pragma omp for schedule(simd \
+                         : guided)
+            for (i = k + 1; i < N; i++)
+            {
+                tmp = matrix[i][k];
+#pragma omp simd
+                for (j = k + 1; j < N; j++)
+                {
+                    matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+                }
+                matrix[i][k] = 0;
+            }
+        }
+    }
+}
+// 按行划分
+void calculate_openmp_row()
+{
+    int i, j, k;
+    float tmp;
+#pragma omp parallel num_threads(NUM_THREADS) default(none) private(i, j, k, tmp) shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp single
+        {
+            tmp = matrix[k][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[k][j] = matrix[k][j] / tmp;
+            }
+            matrix[k][k] = 1.0;
+        }
+#pragma omp for schedule(simd \
+                         : guided)
+        for (i = k + 1; i < N; i++)
+        {
+            tmp = matrix[i][k];
+#pragma omp simd
+            for (j = k + 1; j < N; j++)
+            {
+                matrix[i][j] = matrix[i][j] - tmp * matrix[k][j];
+            }
+            matrix[i][k] = 0;
+        }
+    }
+}
+// 按列划分
+void calculate_openmp_column()
+{
+    int i, j, k;
+#pragma omp parallel num_threads(NUM_THREADS), default(none), private(i, j, k), shared(matrix, N)
+    for (k = 0; k < N; k++)
+    {
+#pragma omp for schedule(simd \
+                         : guided)
+        for (j = k + 1; j < N; j++)
+        {
+            matrix[k][j] = matrix[k][j] / matrix[k][k];
+            for (i = k + 1; i < N; i++)
+            {
+                matrix[i][j] = matrix[i][j] - matrix[i][k] * matrix[k][j];
+            }
+        }
+#pragma omp single
+        {
+            matrix[k][k] = 1;
+            for (i = k + 1; i < N; i++)
+            {
+                matrix[i][k] = 0;
+            }
+        }
+    }
+}
 // 打印矩阵
 void print_matrix()
 {
@@ -285,7 +555,6 @@ void print_matrix()
         printf("\n");
     }
 }
-
 void test(int n)
 {
     N = n;
@@ -360,7 +629,107 @@ void test(int n)
     cout << "openmp_schedule_static:" << time / LOOP << "ms" << endl;
     res_stream << "," << time / LOOP;
     //    print_matrix();
-
+    // ====================================== openmp_schedule_dynamic ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_schedule_dynamic();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_schedule_dynamic:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_schedule_guided ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_schedule_guided();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_schedule_guided:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_schedule_guided_nowait ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_schedule_guided_nowait();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_schedule_guided_nowait:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_schedule_guided_SIMD ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_schedule_guided_SIMD();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_schedule_guided_SIMD:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_static_thread ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_static_thread();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_static_thread:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_dynamic_thread ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_dynamic_thread();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_dynamic_thread:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_row ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_row();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
+    cout << "openmp_row:" << time / LOOP << "ms" << endl;
+    res_stream << "," << time / LOOP;
+    //    print_matrix();
+    // ====================================== openmp_column ======================================
+    time = 0;
+    for (int i = 0; i < LOOP; i++)
+    {
+        init_matrix();
+        gettimeofday(&start, NULL);
+        calculate_openmp_column();
+        gettimeofday(&end, NULL);
+        time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
+    }
     cout << "openmp_column:" << time / LOOP << "ms" << endl;
     res_stream << "," << time / LOOP;
     res_stream << endl;
