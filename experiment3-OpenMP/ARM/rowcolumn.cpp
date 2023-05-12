@@ -16,6 +16,7 @@ typedef struct
 } threadParam_t;
 
 sem_t sem_Division;
+pthread_barrier_t barrier;
 // ============================================== 运算变量 ==============================================
 int N;
 const int L = 100;
@@ -46,8 +47,6 @@ void init_matrix()
         for (int j = 0; j < N; j++)
             matrix[i][j] = Data[i][j];
 }
-
-// 按行划分
 void calculate_openmp_row()
 {
     int i, j, k;
@@ -79,7 +78,6 @@ void calculate_openmp_row()
         }
     }
 }
-
 // 按列划分
 void calculate_openmp_column()
 {
@@ -107,8 +105,18 @@ void calculate_openmp_column()
         }
     }
 }
-
-
+// 打印矩阵
+void print_matrix()
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            printf("%.2f ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
 void test(int n)
 {
     N = n;
@@ -147,3 +155,13 @@ void test(int n)
     //    print_matrix();
 }
 
+int main()
+{
+    res_stream.open("result.csv", ios::out);
+    for (int i = 100; i <= 1000; i += 100)
+        test(i);
+    for (int i = 1000; i <= 3000; i += 500)
+        test(i);
+    res_stream.close();
+    return 0;
+}
