@@ -411,7 +411,7 @@ int main()
             time += ((end4.tv_sec - start4.tv_sec) * 1000000 + (end4.tv_usec - start4.tv_usec)) * 1.0 / 1000;
             count++;
         }
-		cout << "NORMAL："<<n<<" 时间："<< time/cycle << "ms" << endl;
+		cout << "NORMAL："<<n<<time/cycle << "ms" << endl;
         // ======================================discrete ======================================
         count=1;
         time=0;
@@ -424,7 +424,7 @@ int main()
             time += ((end5.tv_sec - start5.tv_sec) * 1000000 + (end5.tv_usec - start5.tv_usec)) * 1.0 / 1000;
             count++;
         }
-		cout << "SSE："<<n<<" 时间："<< time/cycle << "ms" << endl;
+		cout << "SSE："<<n<< time/cycle << "ms" << endl;
         // ======================================discrete ======================================
         count=1;
         time=0;
@@ -437,7 +437,7 @@ int main()
             time += ((end1.tv_sec - start1.tv_sec) * 1000000 + (end1.tv_usec - start1.tv_usec)) * 1.0 / 1000;
             count++;
         }
-		cout << "discrete："<<n<<" 时间："<< time/cycle << "ms" << endl;
+		cout << "discrete："<<n<< time/cycle << "ms" << endl;
         
         // ====================================== pthread ======================================
         count=1;
@@ -451,7 +451,7 @@ int main()
             time += ((end2.tv_sec - start2.tv_sec) * 1000000 + (end2.tv_usec - start2.tv_usec)) * 1.0 / 1000;
             count++;
         }
-		cout << "continue："<<n<<" 时间："<< time/ cycle << "ms" << endl;
+		cout << "continue："<<n<< time/ cycle << "ms" << endl;
 
         //====================================== avx ======================================
         count=1;
@@ -465,7 +465,7 @@ int main()
             time += ((end3.tv_sec - start3.tv_sec) * 1000000 + (end3.tv_usec - start3.tv_usec)) * 1.0 / 1000;
             count++;
         }
-		cout << "dynamic："<<n<<" 时间："<<  time/ cycle << "ms" << endl;
+		cout << "dynamic："<<n<<  time/ cycle << "ms" << endl;
 
 
 		if(n==100) step=100;
