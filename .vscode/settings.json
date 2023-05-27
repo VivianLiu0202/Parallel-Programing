@@ -3,7 +3,8 @@
         "iostream": "cpp",
         "ostream": "cpp",
         "__locale": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "new": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

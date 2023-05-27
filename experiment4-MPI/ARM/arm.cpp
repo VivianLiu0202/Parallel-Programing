@@ -1,23 +1,20 @@
 #include <iostream>
-#include <mpi.h>
+#include "mpi.h"
 #include <fstream>
 #include <cmath>
 #include <sys/time.h>
 #include <arm_neon.h>
 #include <omp.h>
+#define _TEST
 using namespace std;
-
 // ============================================== 运算变量 ==============================================
 int N;
 const int L = 100;
 int LOOP = 1;
 float **origin_data;
 float **matrix = nullptr;
-
 int NUM_THREADS = 8;
-
 ofstream res_stream;
-
 // 初始化数据
 void init_data() {
     origin_data = new float *[N], matrix = new float *[N];
@@ -52,6 +49,7 @@ void init_matrix() {
         }
     }
 }
+
 // 串行算法
 void calculate_serial() {
     for (int k = 0; k < N; k++) {
@@ -624,15 +622,31 @@ void test(int n) {
     }
 }
 
+// 结果打印
+void print_result(double time) {
+#ifdef _TEST
+    res_stream << "," << time / LOOP;
+#endif
+#ifdef _PRINT
+    print_matrix();
+#endif
+}
 
 int main() {
     MPI_Init(nullptr, nullptr);
+#ifdef _TEST
+    res_stream.open("result.csv", ios::out);
     LOOP=50;
     for (int i = 100; i < 1000; i += 100)
         test(i);
     LOOP = 5;
     for (int i = 1000; i <= 3000; i += 500)
         test(i);
+    res_stream.close();
+#endif
+#ifdef _PRINT
+    test(10);
+#endif
     MPI_Finalize();
     return 0;
 }
