@@ -7,9 +7,6 @@
 #include <semaphore.h>
 #include <omp.h>
 
-#define _PRINT
-// #define _TEST
-
 using namespace std;
 
 int NUM_THREADS = 8;
@@ -24,26 +21,56 @@ pthread_barrier_t barrier;
 // ============================================== 运算变量 ==============================================
 int N;
 const int L = 100;
-const int LOOP = 10;
-float **Data;
+const int LOOP = 50;
+float **data;
 float **matrix = NULL;
 
-ofstream res_stream;
+void init_data();
+void init_matrix();
+void calculate_serial();
+void calculate_SIMD();
+void calculate_openmp_single_SIMD();
+void calculate_pthread();
+void calculate_openmp_schedule_static();
+void calculate_openmp_schedule_dynamic();
+void calculate_openmp_schedule_guided();
+void calculate_openmp_schedule_guided_nowait();
+void calculate_openmp_schedule_guided_SIMD();
+void calculate_openmp_static_thread();
+void calculate_openmp_dynamic_thread();
+void calculate_openmp_row();
+void calculate_openmp_column();
+void print_matrix();
+void test(int);
+void print_result(int);
+
+int main()
+{
+
+    // for (int i = 100; i <= 1000; i += 100)
+    //     test(i);
+    // for (int i = 1000; i <= 3000; i += 500)
+    //     test(i);
+        
+    test(1000);
+    return 0;
+}
 
 // 初始化数据
 void init_data()
 {
-    Data = new float *[N], matrix = new float *[N];
+    data = new float *[N], matrix = new float *[N];
     for (int i = 0; i < N; i++)
-        Data[i] = new float[N], matrix[i] = new float[N];
+        data[i] = new float[N], matrix[i] = new float[N];
     for (int i = 0; i < N; i++)
         for (int j = i; j < N; j++)
-            Data[i][j] = rand() * 1.0 / RAND_MAX * L;
+            data[i][j] = rand() * 1.0 / RAND_MAX * L;
     for (int i = 0; i < N - 1; i++)
         for (int j = i + 1; j < N; j++)
             for (int k = 0; k < N; k++)
-                Data[j][k] += Data[i][k];
+                data[j][k] += data[i][k];
 }
+
 // 用data初始化matrix，保证每次进行计算的数据是一致的
 void init_matrix()
 {
@@ -56,7 +83,7 @@ void init_matrix()
         matrix[i] = new float[N];
     for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++)
-            matrix[i][j] = Data[i][j];
+            matrix[i][j] = data[i][j];
 }
 
 // 串行算法
@@ -79,6 +106,7 @@ void calculate_serial()
         }
     }
 }
+
 // SSE并行算法
 void calculate_SIMD()
 {
@@ -129,6 +157,7 @@ void calculate_SIMD()
         }
     }
 }
+
 // 单独使用openmp进行simd优化
 void calculate_openmp_single_SIMD()
 {
@@ -590,18 +619,6 @@ void calculate_openmp_column()
     }
 }
 
-// 打印矩阵
-void print_matrix()
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            printf("%.2f ", matrix[i][j]);
-        }
-        printf("\n");
-    }
-}
 
 // 测试函数
 void test(int n)
@@ -623,7 +640,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "serial:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== SIMD ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -635,7 +651,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "SIMD:" << time / LOOP << "ms" << endl;
-   // print_result(time);
     // ====================================== openmp_single_SIMD ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -647,7 +662,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_single_SIMD:" << time / LOOP << "ms" << endl;
-   // print_result(time);
     // ====================================== pthread ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -659,7 +673,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "pthread:" << time / LOOP << "ms" << endl;
-   // print_result(time);
     // ====================================== openmp_schedule_static ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -671,7 +684,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_schedule_static:" << time / LOOP << "ms" << endl;
-   // print_result(time);
     // ====================================== openmp_schedule_dynamic ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -683,7 +695,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_schedule_dynamic:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_schedule_guided ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -695,7 +706,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_schedule_guided:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_schedule_guided_nowait ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -707,7 +717,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_schedule_guided_nowait:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_schedule_guided_SIMD ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -719,7 +728,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_schedule_guided_SIMD:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_static_thread ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -731,7 +739,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_static_thread:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_dynamic_thread ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -743,7 +750,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_dynamic_thread:" << time / LOOP << "ms" << endl;
-   // print_result(time);
     // ====================================== openmp_row ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -755,7 +761,6 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_row:" << time / LOOP << "ms" << endl;
-    //print_result(time);
     // ====================================== openmp_column ======================================
     time = 0;
     for (int i = 0; i < LOOP; i++)
@@ -767,15 +772,4 @@ void test(int n)
         time += ((end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec)) * 1.0 / 1000;
     }
     cout << "openmp_column:" << time / LOOP << "ms" << endl;
-    //print_result(time);
-}
-
-int main()
-{
-    for (int i = 100; i <= 1000; i += 100)
-        test(i);
-    for (int i = 1000; i <= 3000; i += 500)
-        test(i);
-    system("pause");
-    return 0;
 }
