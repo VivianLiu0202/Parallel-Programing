@@ -122,8 +122,7 @@ void calculate_openmp_single_simd()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -246,8 +245,7 @@ void calculate_openmp_schedule_static()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : static)
+#pragma omp for schedule(simd : static)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -278,8 +276,7 @@ void calculate_openmp_schedule_dynamic()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : dynamic)
+#pragma omp for schedule(simd : dynamic)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -310,8 +307,7 @@ void calculate_openmp_schedule_guided()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -342,8 +338,7 @@ void calculate_openmp_schedule_guided_nowait()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : guided) nowait
+#pragma omp for schedule(simd : guided) nowait
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -388,8 +383,7 @@ void calculate_openmp_schedule_guided_SIMD()
             }
             matrix[k][k] = 1;
         }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (int i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -436,8 +430,7 @@ void calculate_openmp_static_thread()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -469,8 +462,7 @@ void calculate_openmp_dynamic_thread()
                 }
                 matrix[k][k] = 1.0;
             }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
             for (i = k + 1; i < N; i++)
             {
                 tmp = matrix[i][k];
@@ -502,8 +494,7 @@ void calculate_openmp_row()
             }
             matrix[k][k] = 1.0;
         }
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (i = k + 1; i < N; i++)
         {
             tmp = matrix[i][k];
@@ -523,8 +514,7 @@ void calculate_openmp_column()
 #pragma omp parallel num_threads(NUM_THREADS), default(none), private(i, j, k), shared(matrix, N)
     for (k = 0; k < N; k++)
     {
-#pragma omp for schedule(simd \
-                         : guided)
+#pragma omp for schedule(simd : guided)
         for (j = k + 1; j < N; j++)
         {
             matrix[k][j] = matrix[k][j] / matrix[k][k];

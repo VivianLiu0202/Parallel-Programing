@@ -4,5 +4,6 @@
         "ostream": "cpp",
         "__locale": "cpp",
         "random": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
