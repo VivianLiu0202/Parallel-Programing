@@ -11,8 +11,7 @@ using namespace sycl;
 
 #define tileY 64
 #define tileX 64
-//增加的宏定义
-#define EACH 256
+#define UNROLL_FACTOR 256
 
 // return execution time
 double gpu_kernel(float* A, float* B, float* C,
@@ -36,7 +35,6 @@ double gpu_kernel(float* A, float* B, float* C,
 
                 float sum[tileY][tileX] = { 0.0f };
 
-                //新增
                 float subA[tileY][EACH] = { 0.0f };
                 float subB[tileX][EACH] = { 0.0f };
 
@@ -45,23 +43,22 @@ double gpu_kernel(float* A, float* B, float* C,
 
                     // read data to register
                     for (int m = 0; m < tileY; m++) {
-                        for (int s = 0; s < EACH; s++)
+                        for (int s = 0; s < UNROLL_FACTOR; s++)
                             subA[m][s] = A[(row + m) * N + k + s];
                     }
 
                     for (int p = 0; p < tileX; p++) {
-                        for (int s = 0; s < EACH; s++)
+                        for (int s = 0; s < UNROLL_FACTOR; s++)
                             subB[p][s] = B[(k + s) * N + p + col];
                     }
-
                     for (int m = 0; m < tileY; m++) {
                         for (int p = 0; p < tileX; p++) {
-                            for (int s = 0; s < EACH; s++)
+                            for (int s = 0; s < UNROLL_FACTOR; s++)
                                 sum[m][p] += subA[m][s] * subB[p][s];
                         }
                     }
 
-                } //end of K结束新增内容
+                } 
 
                 // write results back
                 for (int m = 0; m < tileY; m++) {
